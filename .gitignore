@@ -1,0 +1,13 @@
+target/
+*.wasm
+!test/*.wasm
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+.env
+.env.local
+*.sh
