@@ -1,7 +1,7 @@
 #![no_std]
 
 #[cfg(test)]
-extern crate std;
+extern crate std; // soroban-sdk testutils require std; pair is no_std so we opt-in explicitly
 
 mod dynamic_fee;
 mod errors;
