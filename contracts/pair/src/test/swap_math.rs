@@ -30,17 +30,11 @@ fn get_amount_out(
     }
 
     let bps_denom = BPS_DENOMINATOR as i128;
-    let fee_factor = bps_denom
-        .checked_sub(fee_bps as i128)
-        .ok_or(PairError::Overflow)?;
+    let fee_factor = bps_denom.checked_sub(fee_bps as i128).ok_or(PairError::Overflow)?;
 
-    let amount_in_with_fee = amount_in
-        .checked_mul(fee_factor)
-        .ok_or(PairError::Overflow)?;
+    let amount_in_with_fee = amount_in.checked_mul(fee_factor).ok_or(PairError::Overflow)?;
 
-    let numerator = amount_in_with_fee
-        .checked_mul(reserve_out)
-        .ok_or(PairError::Overflow)?;
+    let numerator = amount_in_with_fee.checked_mul(reserve_out).ok_or(PairError::Overflow)?;
 
     let denominator = reserve_in
         .checked_mul(bps_denom)
@@ -95,10 +89,7 @@ mod swap_math_tests {
 
         // amount_out must be positive and strictly less than reserve_out
         assert!(amount_out > 0, "amount_out must be positive");
-        assert!(
-            amount_out < reserve_out,
-            "amount_out must be less than reserve_out"
-        );
+        assert!(amount_out < reserve_out, "amount_out must be less than reserve_out");
 
         // For a 0.1 % trade the output should be close to (but less than) amount_in
         // due to price impact + fees.
@@ -118,12 +109,10 @@ mod swap_math_tests {
         let amount_in: i128 = 10_000;
         let fee_bps: u32 = 30;
 
-        let out_with_fee =
-            get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
+        let out_with_fee = get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
 
         // Compare against zero-fee output
-        let out_no_fee =
-            get_amount_out(amount_in, reserve_in, reserve_out, 0).unwrap();
+        let out_no_fee = get_amount_out(amount_in, reserve_in, reserve_out, 0).unwrap();
 
         assert!(
             out_with_fee < out_no_fee,
@@ -175,8 +164,7 @@ mod swap_math_tests {
         let amount_in: i128 = 100_000;
         let fee_bps: u32 = 30;
 
-        let amount_out =
-            get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
+        let amount_out = get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
 
         let (k_before, k_after) = k_after_swap(reserve_in, reserve_out, amount_in, amount_out);
 
@@ -198,8 +186,7 @@ mod swap_math_tests {
         let amount_in: i128 = 10_000;
         let fee_bps: u32 = 0;
 
-        let amount_out =
-            get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
+        let amount_out = get_amount_out(amount_in, reserve_in, reserve_out, fee_bps).unwrap();
 
         let (k_before, k_after) = k_after_swap(reserve_in, reserve_out, amount_in, amount_out);
 
@@ -274,11 +261,7 @@ mod swap_math_tests {
         let huge: i128 = i128::MAX / 2;
         let result = get_amount_out(huge, huge, huge, 30);
 
-        assert_eq!(
-            result,
-            Err(PairError::Overflow),
-            "near-max reserves must return Overflow"
-        );
+        assert_eq!(result, Err(PairError::Overflow), "near-max reserves must return Overflow");
     }
 
     // ---- 11. Overflow: large amount_in triggers overflow ----
@@ -287,11 +270,7 @@ mod swap_math_tests {
         let _env = Env::default();
 
         let result = get_amount_out(i128::MAX, 1_000_000, 1_000_000, 30);
-        assert_eq!(
-            result,
-            Err(PairError::Overflow),
-            "i128::MAX amount_in must return Overflow"
-        );
+        assert_eq!(result, Err(PairError::Overflow), "i128::MAX amount_in must return Overflow");
     }
 
     // ---- 12. mul_div: basic precision check ----
@@ -301,11 +280,7 @@ mod swap_math_tests {
 
         // (SCALE * 2) * (SCALE * 3) / SCALE == SCALE * 6
         let result = mul_div(SCALE * 2, SCALE * 3, SCALE);
-        assert_eq!(
-            result,
-            Some(SCALE * 6),
-            "mul_div basic multiplication failed"
-        );
+        assert_eq!(result, Some(SCALE * 6), "mul_div basic multiplication failed");
     }
 
     // ---- 13. mul_div: division by zero returns None ----
@@ -360,10 +335,7 @@ mod swap_math_tests {
         let out_a_to_b = get_amount_out(amount_in, reserve, reserve, fee_bps).unwrap();
         let out_b_to_a = get_amount_out(amount_in, reserve, reserve, fee_bps).unwrap();
 
-        assert_eq!(
-            out_a_to_b, out_b_to_a,
-            "balanced pool must produce symmetric outputs"
-        );
+        assert_eq!(out_a_to_b, out_b_to_a, "balanced pool must produce symmetric outputs");
     }
 
     // ---- 17. Large realistic swap: price impact sanity ----

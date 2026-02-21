@@ -4,8 +4,8 @@
 //! helper inside `env.as_contract`, then asserts that exactly one event was
 //! published with the correct topics and data payload.
 
-use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, IntoVal, Symbol};
 use crate::events::PairEvents;
+use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, IntoVal, Symbol};
 
 // ---------------------------------------------------------------------------
 // Minimal stub so we can call `env.as_contract` with a valid contract id.
@@ -28,13 +28,11 @@ fn swap_event_emits_correct_topics_and_data() {
 
     env.as_contract(&contract_id, || {
         PairEvents::swap(
-            &env,
-            &sender,
-            1_000_i128,   // amount_a_in
-            0_i128,       // amount_b_in
-            0_i128,       // amount_a_out
-            990_i128,     // amount_b_out
-            30_u32,       // fee_bps
+            &env, &sender, 1_000_i128, // amount_a_in
+            0_i128,     // amount_b_in
+            0_i128,     // amount_a_out
+            990_i128,   // amount_b_out
+            30_u32,     // fee_bps
             &to,
         );
     });

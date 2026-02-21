@@ -1,5 +1,5 @@
-use soroban_sdk::Env;
 use crate::storage::FeeState;
+use soroban_sdk::Env;
 
 /// Maximum decay window in ledger blocks (~24h at 5s blocks).
 const MAX_DECAY_WINDOW: u64 = 17_280;
@@ -15,10 +15,7 @@ pub fn apply_time_decay(_env: &Env, fee_state: &mut FeeState, current_ledger: u6
 
     // Clamp decay window so we never completely overshoot.
     let decay_elapsed = elapsed.min(MAX_DECAY_WINDOW);
-    let decay_window = fee_state
-        .decay_threshold_blocks
-        .max(1)
-        .max(MAX_DECAY_WINDOW);
+    let decay_window = fee_state.decay_threshold_blocks.max(1).max(MAX_DECAY_WINDOW);
 
     // Linear decay: reduce vol_accumulator proportionally to time elapsed.
     // new_vol = old_vol * (1 - elapsed / decay_window)

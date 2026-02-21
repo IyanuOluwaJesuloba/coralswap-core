@@ -16,10 +16,12 @@ mod storage;
 #[cfg(test)]
 mod test;
 
-use soroban_sdk::{contract, contractclient, contractimpl, token::TokenClient, Address, Bytes, Env};
 use errors::PairError;
 use events::PairEvents;
 use math::MINIMUM_LIQUIDITY;
+use soroban_sdk::{
+    contract, contractclient, contractimpl, token::TokenClient, Address, Bytes, Env,
+};
 use storage::{get_fee_state, get_pair_state, set_fee_state, set_pair_state};
 
 #[contractclient(name = "LpTokenClient")]
@@ -77,22 +79,17 @@ impl Pair {
 
         let liquidity;
         if total_supply == 0 {
-            liquidity = math::sqrt(
-                amount_a.checked_mul(amount_b).ok_or(PairError::Overflow)?,
-            ) - MINIMUM_LIQUIDITY;
+            liquidity = math::sqrt(amount_a.checked_mul(amount_b).ok_or(PairError::Overflow)?)
+                - MINIMUM_LIQUIDITY;
             if liquidity <= 0 {
                 return Err(PairError::InsufficientLiquidityMinted);
             }
             lp_client.mint(&contract, &MINIMUM_LIQUIDITY);
         } else {
-            let liquidity_a = amount_a
-                .checked_mul(total_supply)
-                .ok_or(PairError::Overflow)?
-                / state.reserve_a;
-            let liquidity_b = amount_b
-                .checked_mul(total_supply)
-                .ok_or(PairError::Overflow)?
-                / state.reserve_b;
+            let liquidity_a =
+                amount_a.checked_mul(total_supply).ok_or(PairError::Overflow)? / state.reserve_a;
+            let liquidity_b =
+                amount_b.checked_mul(total_supply).ok_or(PairError::Overflow)? / state.reserve_b;
             liquidity = liquidity_a.min(liquidity_b);
         }
 
@@ -104,9 +101,7 @@ impl Pair {
 
         state.reserve_a = balance_a;
         state.reserve_b = balance_b;
-        state.k_last = balance_a
-            .checked_mul(balance_b)
-            .ok_or(PairError::Overflow)?;
+        state.k_last = balance_a.checked_mul(balance_b).ok_or(PairError::Overflow)?;
         set_pair_state(&env, &state);
 
         PairEvents::mint(&env, &to, amount_a, amount_b);
@@ -123,14 +118,10 @@ impl Pair {
         let lp_balance = TokenClient::new(&env, &state.lp_token).balance(&contract);
         let total_supply = LpTokenClient::new(&env, &state.lp_token).total_supply();
 
-        let amount_a = lp_balance
-            .checked_mul(state.reserve_a)
-            .ok_or(PairError::Overflow)?
-            / total_supply;
-        let amount_b = lp_balance
-            .checked_mul(state.reserve_b)
-            .ok_or(PairError::Overflow)?
-            / total_supply;
+        let amount_a =
+            lp_balance.checked_mul(state.reserve_a).ok_or(PairError::Overflow)? / total_supply;
+        let amount_b =
+            lp_balance.checked_mul(state.reserve_b).ok_or(PairError::Overflow)? / total_supply;
 
         if amount_a <= 0 || amount_b <= 0 {
             return Err(PairError::InsufficientLiquidityBurned);
@@ -143,10 +134,7 @@ impl Pair {
 
         state.reserve_a -= amount_a;
         state.reserve_b -= amount_b;
-        state.k_last = state
-            .reserve_a
-            .checked_mul(state.reserve_b)
-            .ok_or(PairError::Overflow)?;
+        state.k_last = state.reserve_a.checked_mul(state.reserve_b).ok_or(PairError::Overflow)?;
         set_pair_state(&env, &state);
 
         PairEvents::burn(&env, &to, amount_a, amount_b, &to);
@@ -212,19 +200,15 @@ impl Pair {
         let contract_address = env.current_contract_address();
 
         if amount_a_out > 0 {
-            TokenClient::new(env, &pair.token_a)
-                .transfer(&contract_address, to, &amount_a_out);
+            TokenClient::new(env, &pair.token_a).transfer(&contract_address, to, &amount_a_out);
         }
         if amount_b_out > 0 {
-            TokenClient::new(env, &pair.token_b)
-                .transfer(&contract_address, to, &amount_b_out);
+            TokenClient::new(env, &pair.token_b).transfer(&contract_address, to, &amount_b_out);
         }
 
         // ── 8. Read actual balances post-transfer ─────────────────────────────
-        let balance_a = TokenClient::new(env, &pair.token_a)
-            .balance(&contract_address);
-        let balance_b = TokenClient::new(env, &pair.token_b)
-            .balance(&contract_address);
+        let balance_a = TokenClient::new(env, &pair.token_a).balance(&contract_address);
+        let balance_b = TokenClient::new(env, &pair.token_b).balance(&contract_address);
 
         // ── 9. Compute effective amounts in ───────────────────────────────────
         // amount_in = new_balance - (old_reserve - amount_out), floored at 0
@@ -264,9 +248,7 @@ impl Pair {
             .checked_mul(100_000_000) // 10_000^2
             .ok_or(PairError::Overflow)?;
 
-        let k_after = balance_a_adj
-            .checked_mul(balance_b_adj)
-            .ok_or(PairError::Overflow)?;
+        let k_after = balance_a_adj.checked_mul(balance_b_adj).ok_or(PairError::Overflow)?;
 
         if k_after < k_before {
             return Err(PairError::InvalidK);
@@ -278,25 +260,12 @@ impl Pair {
         let total_reserve = pair.reserve_a.saturating_add(pair.reserve_b);
         let trade_size = amount_a_in.max(amount_b_in);
         // Simple price delta proxy: change in effective reserve ratio.
-        let old_price = if pair.reserve_a > 0 {
-            (pair.reserve_b * 10_000) / pair.reserve_a
-        } else {
-            0
-        };
-        let new_price = if balance_a > 0 {
-            (balance_b * 10_000) / balance_a
-        } else {
-            0
-        };
+        let old_price =
+            if pair.reserve_a > 0 { (pair.reserve_b * 10_000) / pair.reserve_a } else { 0 };
+        let new_price = if balance_a > 0 { (balance_b * 10_000) / balance_a } else { 0 };
         let price_delta = (new_price - old_price).unsigned_abs() as i128;
 
-        dynamic_fee::update_volatility(
-            env,
-            &mut fee_state,
-            price_delta,
-            trade_size,
-            total_reserve,
-        );
+        dynamic_fee::update_volatility(env, &mut fee_state, price_delta, trade_size, total_reserve);
 
         // ── 13. Update K_last and reserves ────────────────────────────────────
         pair.k_last = balance_a * balance_b;
@@ -331,8 +300,11 @@ impl Pair {
     /// of token_b to `receiver`.  The receiver must repay principal + fee
     /// before the `on_flash_loan` callback returns.
     pub fn flash_loan(
-        env: Env, receiver: Address, amount_a: i128,
-        amount_b: i128, data: Bytes,
+        env: Env,
+        receiver: Address,
+        amount_a: i128,
+        amount_b: i128,
+        data: Bytes,
     ) -> Result<(), PairError> {
         flash_loan::execute_flash_loan(&env, &receiver, amount_a, amount_b, &data)
     }
@@ -343,9 +315,7 @@ impl Pair {
     }
 
     pub fn get_current_fee_bps(env: Env) -> u32 {
-        get_fee_state(&env)
-            .map(|fs| dynamic_fee::compute_fee_bps(&fs))
-            .unwrap_or(30)
+        get_fee_state(&env).map(|fs| dynamic_fee::compute_fee_bps(&fs)).unwrap_or(30)
     }
 
     pub fn sync(env: Env) -> Result<(), PairError> {

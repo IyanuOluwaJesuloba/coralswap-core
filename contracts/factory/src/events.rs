@@ -4,8 +4,11 @@ pub struct FactoryEvents;
 
 impl FactoryEvents {
     pub fn pair_created(
-        env: &Env, token_a: &Address, token_b: &Address,
-        pair: &Address, pair_index: u32,
+        env: &Env,
+        token_a: &Address,
+        token_b: &Address,
+        pair: &Address,
+        pair_index: u32,
     ) {
         let topics = (soroban_sdk::symbol_short!("created"), token_a.clone(), token_b.clone());
         env.events().publish(topics, (pair.clone(), pair_index));

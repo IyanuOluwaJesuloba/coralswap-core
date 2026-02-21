@@ -40,7 +40,7 @@ mod factory_tests {
     #[test]
     fn test_create_pair_validation() {
         let (_env, client, token_a, token_b, _) = setup_env();
-        
+
         // Identical tokens should return Err(IdenticalTokens = 8)
         let result = client.try_create_pair(&token_a, &token_a);
         assert!(result.is_err());

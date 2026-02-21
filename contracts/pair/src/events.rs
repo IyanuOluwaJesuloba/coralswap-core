@@ -20,24 +20,15 @@ impl PairEvents {
     }
 
     pub fn mint(env: &Env, sender: &Address, amount_a: i128, amount_b: i128) {
-        env.events().publish(
-            (symbol_short!("mint"), sender),
-            (amount_a, amount_b),
-        );
+        env.events().publish((symbol_short!("mint"), sender), (amount_a, amount_b));
     }
 
     pub fn burn(env: &Env, sender: &Address, amount_a: i128, amount_b: i128, to: &Address) {
-        env.events().publish(
-            (symbol_short!("burn"), sender),
-            (amount_a, amount_b, to),
-        );
+        env.events().publish((symbol_short!("burn"), sender), (amount_a, amount_b, to));
     }
 
     pub fn sync(env: &Env, reserve_a: i128, reserve_b: i128) {
-        env.events().publish(
-            (symbol_short!("sync"),),
-            (reserve_a, reserve_b),
-        );
+        env.events().publish((symbol_short!("sync"),), (reserve_a, reserve_b));
     }
 
     /// Emits a `flash_loan` event after a successful flash loan.

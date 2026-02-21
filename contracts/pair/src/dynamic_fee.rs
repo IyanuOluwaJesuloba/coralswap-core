@@ -1,6 +1,6 @@
-use soroban_sdk::Env;
-use crate::storage::FeeState;
 use crate::fee_decay::apply_time_decay;
+use crate::storage::FeeState;
+use soroban_sdk::Env;
 
 const SCALE: i128 = 100_000_000_000_000; // 1e14
 
@@ -39,20 +39,15 @@ pub fn compute_fee_bps(fee_state: &FeeState) -> u32 {
     // Scale vol_accumulator into bps range.
     // vol_accumulator lives in (price_delta / SCALE) space.
     // Multiply by ramp_up_multiplier and convert to bps range.
-    let raw_bps = (fee_state.vol_accumulator * fee_state.ramp_up_multiplier as i128)
-        / (SCALE / 10_000); // normalise to bps
+    let raw_bps =
+        (fee_state.vol_accumulator * fee_state.ramp_up_multiplier as i128) / (SCALE / 10_000); // normalise to bps
 
-    let dynamic_fee = raw_bps.clamp(
-        fee_state.min_fee_bps as i128,
-        fee_state.max_fee_bps as i128,
-    ) as u32;
+    let dynamic_fee =
+        raw_bps.clamp(fee_state.min_fee_bps as i128, fee_state.max_fee_bps as i128) as u32;
 
     // If volatility accumulator is effectively zero, fall back to baseline.
     if fee_state.vol_accumulator == 0 {
-        return fee_state.baseline_fee_bps.clamp(
-            fee_state.min_fee_bps,
-            fee_state.max_fee_bps,
-        );
+        return fee_state.baseline_fee_bps.clamp(fee_state.min_fee_bps, fee_state.max_fee_bps);
     }
 
     dynamic_fee

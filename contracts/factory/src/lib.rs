@@ -12,9 +12,9 @@ mod upgrade;
 #[cfg(test)]
 mod test;
 
+use errors::FactoryError;
 use soroban_sdk::xdr::ToXdr;
 use soroban_sdk::{contract, contractclient, contractimpl, Address, Bytes, BytesN, Env, Vec};
-use errors::FactoryError;
 use storage::FactoryStorage;
 
 #[contractclient(name = "PairClient")]
@@ -34,8 +34,10 @@ pub struct Factory;
 #[contractimpl]
 impl Factory {
     pub fn initialize(
-        env: Env, signers: Vec<Address>,
-        pair_wasm_hash: BytesN<32>, lp_token_wasm_hash: BytesN<32>,
+        env: Env,
+        signers: Vec<Address>,
+        pair_wasm_hash: BytesN<32>,
+        lp_token_wasm_hash: BytesN<32>,
     ) -> Result<(), FactoryError> {
         if storage::has_factory_storage(&env) {
             return Err(FactoryError::AlreadyInitialized);
@@ -59,24 +61,23 @@ impl Factory {
     }
 
     pub fn create_pair(
-        env: Env, token_a: Address, token_b: Address,
+        env: Env,
+        token_a: Address,
+        token_b: Address,
     ) -> Result<Address, FactoryError> {
         if token_a == token_b {
             return Err(FactoryError::IdenticalTokens);
         }
 
-        let (token_0, token_1) = if token_a < token_b {
-            (token_a, token_b)
-        } else {
-            (token_b, token_a)
-        };
+        let (token_0, token_1) =
+            if token_a < token_b { (token_a, token_b) } else { (token_b, token_a) };
 
         if storage::get_pair(&env, token_0.clone(), token_1.clone()).is_some() {
             return Err(FactoryError::PairExists);
         }
 
-        let mut factory_storage = storage::get_factory_storage(&env)
-            .ok_or(FactoryError::NotInitialized)?;
+        let mut factory_storage =
+            storage::get_factory_storage(&env).ok_or(FactoryError::NotInitialized)?;
 
         if factory_storage.paused {
             return Err(FactoryError::ProtocolPaused);
