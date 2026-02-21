@@ -1,11 +1,11 @@
-use soroban_sdk::{contracttype, Address};
+use soroban_sdk::{contracttype, Address, String};
 
 #[contracttype]
 #[derive(Clone, Debug)]
 pub struct TokenMetadata {
     pub decimals: u32,
-    pub name: [u8; 32],
-    pub symbol: [u8; 8],
+    pub name: String,
+    pub symbol: String,
 }
 
 #[contracttype]
