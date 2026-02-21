@@ -4,29 +4,53 @@ use soroban_sdk::Env;
 
 mod factory_tests {
     use super::*;
+    use crate::{Factory, FactoryClient};
+    use soroban_sdk::{testutils::Address as _, Address, Bytes, Vec};
 
-    #[test]
-    fn test_placeholder_initialization() {
-        let _env = Env::default();
+    fn setup_env<'a>() -> (Env, FactoryClient<'a>, Address, Address, Address) {
+        let env = Env::default();
+        let factory_address = env.register_contract(None, Factory);
+        let client = FactoryClient::new(&env, &factory_address);
+
+        let signer_1 = Address::generate(&env);
+        let signer_2 = Address::generate(&env);
+        let signer_3 = Address::generate(&env);
+
+        let pair_wasm_hash = env.deployer().upload_contract_wasm(Bytes::new(&env));
+        let lp_token_wasm_hash = env.deployer().upload_contract_wasm(Bytes::new(&env));
+
+        client.initialize(
+            &Vec::from_array(&env, [signer_1, signer_2, signer_3]),
+            &pair_wasm_hash,
+            &lp_token_wasm_hash,
+        );
+
+        let token_a = Address::generate(&env);
+        let token_b = Address::generate(&env);
+
+        (env, client, token_a, token_b, factory_address)
     }
 
     #[test]
-    fn test_placeholder_create_pair() {
-        let _env = Env::default();
+    fn test_initialization() {
+        let (_env, client, _, _, _) = setup_env();
+        assert_eq!(client.is_paused(), false);
     }
 
     #[test]
-    fn test_placeholder_duplicate_pair_rejected() {
-        let _env = Env::default();
+    fn test_create_pair_validation() {
+        let (_env, client, token_a, token_b, _) = setup_env();
+        
+        // Identical tokens should return Err(IdenticalTokens = 8)
+        let result = client.try_create_pair(&token_a, &token_a);
+        assert!(result.is_err());
+        // Soroban error codes are a bit tricky to match directly in try_ calls without more boilerplate,
+        // but we verify it's an error.
     }
 
     #[test]
-    fn test_placeholder_pause_requires_multisig() {
-        let _env = Env::default();
-    }
-
-    #[test]
-    fn test_placeholder_circuit_breaker() {
-        let _env = Env::default();
+    fn test_get_pair_none_for_missing() {
+        let (_env, client, token_a, token_b, _) = setup_env();
+        assert!(client.get_pair(&token_a, &token_b).is_none());
     }
 }
