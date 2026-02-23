@@ -1,23 +1,23 @@
 #![cfg(test)]
 
 use crate::dynamic_fee::{compute_fee_bps, decay_stale_ema, update_volatility};
+use crate::errors::PairError;
 use crate::storage::FeeState;
 use soroban_sdk::{testutils::Ledger, Env};
 
-const SCALE: i128 = 100_000_000_000_000; // 1e14
+const SCALE: i128 = 100_000_000_000_000;
 
-/// Helper to create a default FeeState for testing.
 fn default_fee_state() -> FeeState {
     FeeState {
         vol_accumulator: 0,
-        ema_alpha: 500_000_000_000, // 0.005 * SCALE
+        ema_alpha: SCALE / 20, // 5%
         baseline_fee_bps: 30,
         min_fee_bps: 5,
         max_fee_bps: 100,
-        ramp_up_multiplier: 1000,
+        ramp_up_multiplier: 2,
         cooldown_divisor: 2,
         last_fee_update: 0,
-        decay_threshold_blocks: 1000,
+        decay_threshold_blocks: 100,
     }
 }
 
@@ -26,7 +26,7 @@ fn default_fee_state() -> FeeState {
 // ============================================================================
 
 #[test]
-fn test_update_volatility_zero_reserve_no_panic() {
+fn test_update_volatility_zero_reserve_returns_error() {
     let env = Env::default();
     let mut fee_state = default_fee_state();
 
@@ -80,11 +80,11 @@ fn test_update_volatility_ema_smoothing() {
     let total_reserve = 10_000_000;
 
     // First update
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     let first_value = fee_state.vol_accumulator;
 
     // Second update with same parameters
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     let second_value = fee_state.vol_accumulator;
 
     // EMA should smooth: second value should be higher but not double
@@ -138,7 +138,7 @@ fn test_compute_fee_bps_respects_max_bound() {
     let fee = compute_fee_bps(&fee_state);
 
     assert!(fee <= fee_state.max_fee_bps);
-    assert_eq!(fee, 100); // Should clamp to max_fee_bps
+    assert_eq!(fee, 100);
 }
 
 #[test]
@@ -398,9 +398,8 @@ fn test_decay_caps_at_max_periods() {
     assert!(fee_state.vol_accumulator < i128::MAX / 1_000_000);
 }
 
-// ============================================================================
-// Integration Tests
-// ============================================================================
+    assert_eq!(fee_state.vol_accumulator, 0);
+}
 
 #[test]
 fn test_large_trade_increases_fee() {
@@ -433,7 +432,7 @@ fn test_multiple_trades_accumulate_volatility() {
 
     // Execute multiple trades
     for _ in 0..5 {
-        update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+        update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     }
 
     let fee_after_trades = compute_fee_bps(&fee_state);
