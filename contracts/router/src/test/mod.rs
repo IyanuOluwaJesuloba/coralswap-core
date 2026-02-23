@@ -127,12 +127,7 @@ fn test_placeholder_swap_exact_in() {
 }
 
 #[test]
-fn test_placeholder_swap_exact_out() {
-    let _env = Env::default();
-}
-
-#[test]
-fn test_placeholder_expired_deadline_rejected() {
+fn test_placeholder_swap_tokens_for_exact_tokens() {
     let _env = Env::default();
 }
 

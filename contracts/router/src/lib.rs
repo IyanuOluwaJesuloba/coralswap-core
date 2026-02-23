@@ -99,11 +99,11 @@ impl Router {
         deadline: u64,
     ) -> Result<(i128, i128), RouterError> {
         // Check deadline
-        if env.ledger().timestamp() > deadline {
+        if deadline < env.ledger().timestamp() {
             return Err(RouterError::Expired);
         }
 
-        // Check for zero amounts
+        // Check for non-zero liquidity
         if liquidity <= 0 {
             return Err(RouterError::ZeroAmount);
         }

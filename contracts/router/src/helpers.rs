@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+
 use crate::errors::RouterError;
 use soroban_sdk::{contractclient, Address, Env};
 
@@ -12,6 +14,9 @@ pub trait FactoryInterface {
 pub trait PairInterface {
     fn burn(env: Env, to: Address) -> (i128, i128);
     fn lp_token(env: Env) -> Address;
+    fn swap(env: Env, amount_a_out: i128, amount_b_out: i128, to: Address);
+    fn get_reserves(env: Env) -> (i128, i128, u64);
+    fn get_current_fee_bps(env: Env) -> u32;
 }
 
 #[contractclient(name = "TokenClient")]
@@ -34,10 +39,10 @@ pub trait TokenInterface {
 #[allow(dead_code)]
 pub fn get_amount_out(
     _env: &Env,
-    _amount_in: i128,
-    _reserve_in: i128,
-    _reserve_out: i128,
-    _fee_bps: u32,
+    amount_in: i128,
+    reserve_in: i128,
+    reserve_out: i128,
+    fee_bps: u32,
 ) -> Result<i128, RouterError> {
     todo!()
 }
@@ -49,10 +54,10 @@ pub fn get_amount_out(
 #[allow(dead_code)]
 pub fn get_amount_in(
     _env: &Env,
-    _amount_out: i128,
-    _reserve_in: i128,
-    _reserve_out: i128,
-    _fee_bps: u32,
+    amount_out: i128,
+    reserve_in: i128,
+    reserve_out: i128,
+    fee_bps: u32,
 ) -> Result<i128, RouterError> {
     todo!()
 }

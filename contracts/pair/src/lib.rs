@@ -1,7 +1,7 @@
 #![cfg_attr(not(test), no_std)]
 
 #[cfg(test)]
-extern crate std;
+extern crate std; // soroban-sdk testutils require std; pair is no_std so we opt-in explicitly
 
 mod dynamic_fee;
 mod errors;
@@ -265,7 +265,7 @@ impl Pair {
         let new_price = if balance_a > 0 { (balance_b * 10_000) / balance_a } else { 0 };
         let price_delta = (new_price - old_price).unsigned_abs() as i128;
 
-        dynamic_fee::update_volatility(env, &mut fee_state, price_delta, trade_size, total_reserve);
+        dynamic_fee::update_volatility(env, &mut fee_state, price_delta, trade_size, total_reserve)?;
 
         // ── 13. Update K_last and reserves ────────────────────────────────────
         pair.k_last = balance_a * balance_b;
