@@ -316,7 +316,7 @@ impl Pair {
             TokenClient::new(env, &pair.token_b).transfer(&contract_address, to, &amount_b_out);
         }
 
-        // ── 8. Read actual balances post-transfer ─────────────────────────────
+        // ── 8. Read actual balances post-transfer ───────────────────────────
         let balance_a = TokenClient::new(env, &pair.token_a).balance(&contract_address);
         let balance_b = TokenClient::new(env, &pair.token_b).balance(&contract_address);
 
