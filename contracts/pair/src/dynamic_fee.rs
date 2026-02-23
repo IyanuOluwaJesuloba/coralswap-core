@@ -74,19 +74,34 @@ pub fn update_volatility(
 }
 
 /// Computes the current fee in basis points from the EMA state.
+///
+/// Formula: `fee = baseline_fee_bps + (vol_accumulator * ramp_up_multiplier) / (SCALE / 10_000)`
+///
+/// The result is clamped to `[min_fee_bps, max_fee_bps]`.
+///
+/// - Zero volatility returns `baseline_fee_bps` (clamped to bounds).
+/// - Low volatility yields a fee slightly above baseline.
+/// - High volatility pushes the fee towards `max_fee_bps`.
+/// - Overflow-safe via saturating arithmetic.
 pub fn compute_fee_bps(fee_state: &FeeState) -> u32 {
-    let vol = fee_state.vol_accumulator;
+    // If volatility accumulator is zero, fall back to baseline.
+    if fee_state.vol_accumulator == 0 {
+        return fee_state.baseline_fee_bps.clamp(fee_state.min_fee_bps, fee_state.max_fee_bps);
+    }
 
-    // Linear interpolation: fee = min + (vol / SCALE) * ramp_up * (max - min)
-    // We simplify: fee = min + (vol * ramp_up * (max - min)) / SCALE
-    let range = (fee_state.max_fee_bps - fee_state.min_fee_bps) as i128;
-    let adjustment = (vol * fee_state.ramp_up_multiplier as i128 * range) / SCALE;
+    // Normalize vol_accumulator into a bps contribution.
+    // vol_accumulator lives in SCALE space (1e14).
+    // scale_to_bps = SCALE / 10_000 = 1e10
+    let scale_to_bps = SCALE / 10_000;
 
-    let fee = fee_state.min_fee_bps as i128 + adjustment;
+    let vol_bps = fee_state.vol_accumulator.saturating_mul(fee_state.ramp_up_multiplier as i128)
+        / scale_to_bps;
 
-    // Clamp to [min, max]
-    fee.max(fee_state.min_fee_bps as i128)
-        .min(fee_state.max_fee_bps as i128) as u32
+    // Linear interpolation: fee = baseline + dynamic volatility component.
+    let fee = (fee_state.baseline_fee_bps as i128).saturating_add(vol_bps);
+
+    // Clamp to configured bounds.
+    fee.clamp(fee_state.min_fee_bps as i128, fee_state.max_fee_bps as i128) as u32
 }
 
 /// Decays the volatility accumulator if the pool has been idle.
