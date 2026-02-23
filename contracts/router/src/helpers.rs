@@ -4,11 +4,13 @@ use crate::errors::RouterError;
 use soroban_sdk::{contractclient, Address, Env};
 
 #[contractclient(name = "FactoryClient")]
+#[allow(dead_code)]
 pub trait FactoryInterface {
     fn get_pair(env: Env, token_a: Address, token_b: Address) -> Option<Address>;
 }
 
 #[contractclient(name = "PairClient")]
+#[allow(dead_code)]
 pub trait PairInterface {
     fn burn(env: Env, to: Address) -> (i128, i128);
     fn lp_token(env: Env) -> Address;
@@ -18,6 +20,7 @@ pub trait PairInterface {
 }
 
 #[contractclient(name = "TokenClient")]
+#[allow(dead_code)]
 pub trait TokenInterface {
     fn transfer(env: Env, from: Address, to: Address, amount: i128);
     fn balance(env: Env, id: Address) -> i128;
@@ -33,6 +36,7 @@ pub trait TokenInterface {
 /// * `reserve_in` - The reserve of the input token in the pair
 /// * `reserve_out` - The reserve of the output token in the pair
 /// * `fee_bps` - The fee in basis points (e.g., 30 = 0.3%)
+#[allow(dead_code)]
 pub fn get_amount_out(
     _env: &Env,
     amount_in: i128,
@@ -99,6 +103,7 @@ pub fn get_amount_in(
 ///
 /// Returns tokens in the order (token_a, token_b) where token_a < token_b.
 /// This matches the ordering used by the Factory when creating pairs.
+#[allow(dead_code)]
 pub fn sort_tokens(
     _token_a: &Address,
     _token_b: &Address,

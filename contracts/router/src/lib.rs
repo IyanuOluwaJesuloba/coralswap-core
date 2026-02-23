@@ -1,4 +1,7 @@
-#![no_std]
+#![cfg_attr(not(test), no_std)]
+
+#[cfg(test)]
+extern crate std;
 
 mod errors;
 mod helpers;
@@ -96,13 +99,18 @@ impl Router {
         deadline: u64,
     ) -> Result<(i128, i128), RouterError> {
         // Check deadline
-        if env.ledger().timestamp() > deadline {
+        if deadline < env.ledger().timestamp() {
             return Err(RouterError::Expired);
         }
 
-        // Check for zero amounts
+        // Check for non-zero liquidity
         if liquidity <= 0 {
             return Err(RouterError::ZeroAmount);
+        }
+
+        // Check for identical tokens
+        if token_a == token_b {
+            return Err(RouterError::IdenticalTokens);
         }
 
         // Get factory address
@@ -127,9 +135,9 @@ impl Router {
         // Call Pair::burn(to) - this will burn LP tokens from the pair and transfer underlying tokens
         let (amount_a, amount_b) = pair_client.burn(&to);
 
-        // Check slippage
+        // Enforce minimum output amounts
         if amount_a < amount_a_min || amount_b < amount_b_min {
-            return Err(RouterError::SlippageExceeded);
+            return Err(RouterError::InsufficientOutputAmount);
         }
 
         Ok((amount_a, amount_b))
