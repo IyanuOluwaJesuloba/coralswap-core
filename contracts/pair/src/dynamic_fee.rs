@@ -159,10 +159,14 @@ mod tests {
         let price_delta = 1_000;
         let mut state = default_fee_state(alpha);
 
+        // Run 200 identical observations — accumulator must converge.
+        // With alpha=10%, convergence needs ~ln(0.01)/ln(0.9) ≈ 44 steps for 99%,
+        // but integer rounding slows it, so we use 200 to be safe.
         let mut prev = 0i128;
         for _ in 0..200 {
             update_volatility(&env, &mut state, price_delta, trade_size, total_reserve)
                 .unwrap();
+            // Each step should move closer (or equal) to steady state.
             assert!(
                 state.vol_accumulator >= prev,
                 "accumulator should be non-decreasing under constant positive input"
@@ -170,6 +174,13 @@ mod tests {
             prev = state.vol_accumulator;
         }
 
+        // Steady-state theoretical value:
+        //   observation = price_delta * (trade_size / total_reserve) = 1000 * 0.1 = 100
+        // EMA converges to observation = 100.
+        // With SCALE = 1e14 the accumulator stores the value in unscaled i128 form.
+        // Due to integer truncation in fixed-point division, the steady-state
+        // value is slightly below the theoretical 100. The EMA converges to
+        // a floor caused by rounding. We verify it's within 10% of theoretical.
         let theoretical = 100i128;
         assert!(
             state.vol_accumulator > theoretical * 9 / 10
@@ -192,6 +203,7 @@ mod tests {
         // Slow alpha (5 %)
         let mut slow = default_fee_state(SCALE / 20);
 
+        // After one observation, fast alpha should react more.
         update_volatility(&env, &mut fast, price_delta, trade_size, total_reserve).unwrap();
         update_volatility(&env, &mut slow, price_delta, trade_size, total_reserve).unwrap();
 
@@ -210,10 +222,12 @@ mod tests {
         let env = Env::default();
         let alpha = SCALE / 10;
         let mut state = default_fee_state(alpha);
+        // Seed with some existing volatility.
         state.vol_accumulator = 500;
 
         update_volatility(&env, &mut state, 0, 100_000, 1_000_000).unwrap();
 
+        // With zero delta the observation is 0 and the EMA decays.
         assert!(
             state.vol_accumulator <= 500,
             "accumulator should not increase on zero delta, got {}",
@@ -231,6 +245,8 @@ mod tests {
 
         update_volatility(&env, &mut state, 100, 1_000, 1_000_000).unwrap();
 
+        // Soroban default test env ledger timestamp is 0, but the field must
+        // equal whatever the ledger reports.
         assert_eq!(state.last_fee_update, env.ledger().timestamp());
     }
 
@@ -241,6 +257,7 @@ mod tests {
         let env = Env::default();
         let mut state = default_fee_state(SCALE / 10);
 
+        // price_delta near i128::MAX should overflow in checked_mul.
         let result = update_volatility(
             &env,
             &mut state,
@@ -305,6 +322,7 @@ mod tests {
 
         update_volatility(&env, &mut state, 1_000, 100_000, 1_000_000).unwrap();
 
+        // With alpha=0 the new observation has zero weight — accumulator unchanged.
         assert_eq!(state.vol_accumulator, 500);
     }
 
@@ -314,6 +332,7 @@ mod tests {
         let mut state = default_fee_state(SCALE); // alpha = SCALE (100 %)
         state.vol_accumulator = 999_999;
 
+        // observation = 1000 * (100_000 / 1_000_000) = 100
         update_volatility(&env, &mut state, 1_000, 100_000, 1_000_000).unwrap();
 
         assert_eq!(
