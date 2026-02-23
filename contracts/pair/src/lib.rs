@@ -404,7 +404,7 @@ impl Pair {
         Ok(())
     }
 
-    // ── Flash Loan ────────────────────────────────────────────────────────────
+    // Flash Loan ────────────────────────────────────────────────────────────
 
     /// Executes an uncollateralized flash loan of tokens to a receiver contract.
     ///
