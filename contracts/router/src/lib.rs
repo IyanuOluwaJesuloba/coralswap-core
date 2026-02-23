@@ -12,6 +12,18 @@ use helpers::{get_pair_address, PairClient};
 use soroban_sdk::{contract, contractimpl, token::TokenClient, Address, Env, Vec};
 use storage::{get_factory, set_factory};
 
+#[contractclient(name = "FactoryClient")]
+pub trait FactoryInterface {
+    fn get_pair(env: Env, token_a: Address, token_b: Address) -> Option<Address>;
+}
+
+#[contractclient(name = "PairClient")]
+pub trait PairInterface {
+    fn swap(env: Env, amount_a_out: i128, amount_b_out: i128, to: Address);
+    fn get_reserves(env: Env) -> (i128, i128, u64);
+    fn get_current_fee_bps(env: Env) -> u32;
+}
+
 #[contract]
 pub struct Router;
 
@@ -31,6 +43,14 @@ impl Router {
         todo!()
     }
 
+    /// Swaps tokens to receive an exact amount of output tokens (not yet implemented).
+    ///
+    /// # Arguments
+    /// * `amount_out` - The exact amount of output tokens desired
+    /// * `amount_in_max` - The maximum amount of input tokens to spend
+    /// * `path` - Vector of token addresses representing the swap route
+    /// * `to` - The recipient address for output tokens
+    /// * `deadline` - Unix timestamp after which the transaction will revert
     pub fn swap_tokens_for_exact_tokens(
         env: Env,
         amount_out: i128,
@@ -42,6 +62,17 @@ impl Router {
         todo!()
     }
 
+    /// Adds liquidity to a token pair (not yet implemented).
+    ///
+    /// # Arguments
+    /// * `token_a` - First token address
+    /// * `token_b` - Second token address
+    /// * `amount_a_desired` - Desired amount of token_a to add
+    /// * `amount_b_desired` - Desired amount of token_b to add
+    /// * `amount_a_min` - Minimum amount of token_a to add
+    /// * `amount_b_min` - Minimum amount of token_b to add
+    /// * `to` - Recipient of LP tokens
+    /// * `deadline` - Unix timestamp after which the transaction will revert
     pub fn add_liquidity(
         env: Env,
         token_a: Address,
@@ -56,6 +87,16 @@ impl Router {
         todo!()
     }
 
+    /// Removes liquidity from a token pair (not yet implemented).
+    ///
+    /// # Arguments
+    /// * `token_a` - First token address
+    /// * `token_b` - Second token address
+    /// * `liquidity` - Amount of LP tokens to burn
+    /// * `amount_a_min` - Minimum amount of token_a to receive
+    /// * `amount_b_min` - Minimum amount of token_b to receive
+    /// * `to` - Recipient of underlying tokens
+    /// * `deadline` - Unix timestamp after which the transaction will revert
     pub fn remove_liquidity(
         env: Env,
         token_a: Address,
