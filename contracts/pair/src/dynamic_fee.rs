@@ -75,26 +75,24 @@ pub fn update_volatility(
 
 /// Computes the current fee in basis points from the EMA state.
 pub fn compute_fee_bps(fee_state: &FeeState) -> u32 {
-    // Scale vol_accumulator into bps range.
-    // vol_accumulator lives in (price_delta / SCALE) space.
-    // Multiply by ramp_up_multiplier and convert to bps range.
-    let raw_bps =
-        (fee_state.vol_accumulator * fee_state.ramp_up_multiplier as i128) / (SCALE / 10_000); // normalise to bps
+    let vol = fee_state.vol_accumulator;
 
-    let dynamic_fee =
-        raw_bps.clamp(fee_state.min_fee_bps as i128, fee_state.max_fee_bps as i128) as u32;
+    // Linear interpolation: fee = min + (vol / SCALE) * ramp_up * (max - min)
+    // We simplify: fee = min + (vol * ramp_up * (max - min)) / SCALE
+    let range = (fee_state.max_fee_bps - fee_state.min_fee_bps) as i128;
+    let adjustment = (vol * fee_state.ramp_up_multiplier as i128 * range) / SCALE;
 
-    // If volatility accumulator is effectively zero, fall back to baseline.
-    if fee_state.vol_accumulator == 0 {
-        return fee_state.baseline_fee_bps.clamp(fee_state.min_fee_bps, fee_state.max_fee_bps);
-    }
+    let fee = fee_state.min_fee_bps as i128 + adjustment;
 
-    dynamic_fee
+    // Clamp to [min, max]
+    fee.max(fee_state.min_fee_bps as i128)
+        .min(fee_state.max_fee_bps as i128) as u32
 }
 
-/// Decays stale EMA towards the baseline fee when pool is idle.
+/// Decays the volatility accumulator if the pool has been idle.
 pub fn decay_stale_ema(env: &Env, fee_state: &mut FeeState) {
     let current_ledger = env.ledger().sequence() as u64;
+
     if current_ledger > fee_state.last_fee_update + fee_state.decay_threshold_blocks {
         apply_time_decay(env, fee_state, current_ledger);
     }
