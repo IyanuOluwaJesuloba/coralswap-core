@@ -1,6 +1,7 @@
 #![cfg(test)]
 
 use crate::dynamic_fee::{compute_fee_bps, decay_stale_ema, update_volatility};
+use crate::errors::PairError;
 use crate::storage::FeeState;
 use soroban_sdk::{testutils::Ledger, Env};
 
@@ -26,13 +27,14 @@ fn default_fee_state() -> FeeState {
 // ============================================================================
 
 #[test]
-fn test_update_volatility_zero_reserve_no_panic() {
+fn test_update_volatility_zero_reserve_returns_error() {
     let env = Env::default();
     let mut fee_state = default_fee_state();
-    
-    update_volatility(&env, &mut fee_state, 1000, 100, 0);
-    
-    // Should not panic and accumulator should remain unchanged
+
+    let result = update_volatility(&env, &mut fee_state, 1000, 100, 0);
+
+    // Should return InvalidInput error and accumulator should remain unchanged
+    assert_eq!(result, Err(PairError::InvalidInput));
     assert_eq!(fee_state.vol_accumulator, 0);
 }
 
@@ -45,8 +47,8 @@ fn test_update_volatility_increases_accumulator() {
     let trade_size = 1_000_000;
     let total_reserve = 10_000_000;
     
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
-    
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
+
     // Accumulator should increase from 0
     assert!(fee_state.vol_accumulator > 0);
 }
@@ -61,10 +63,10 @@ fn test_update_volatility_small_trade_has_less_impact() {
     let total_reserve = 10_000_000;
     
     // Small trade: 1% of reserves
-    update_volatility(&env, &mut fee_state_small, price_delta, 100_000, total_reserve);
-    
+    update_volatility(&env, &mut fee_state_small, price_delta, 100_000, total_reserve).unwrap();
+
     // Large trade: 10% of reserves
-    update_volatility(&env, &mut fee_state_large, price_delta, 1_000_000, total_reserve);
+    update_volatility(&env, &mut fee_state_large, price_delta, 1_000_000, total_reserve).unwrap();
     
     // Large trade should have more impact
     assert!(fee_state_large.vol_accumulator > fee_state_small.vol_accumulator);
@@ -80,11 +82,11 @@ fn test_update_volatility_ema_smoothing() {
     let total_reserve = 10_000_000;
     
     // First update
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     let first_value = fee_state.vol_accumulator;
-    
+
     // Second update with same parameters
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     let second_value = fee_state.vol_accumulator;
     
     // EMA should smooth: second value should be higher but not double
@@ -101,8 +103,8 @@ fn test_update_volatility_prevents_manipulation_by_tiny_trades() {
     let tiny_trade = 1; // Extremely small trade
     let total_reserve = 10_000_000;
     
-    update_volatility(&env, &mut fee_state, price_delta, tiny_trade, total_reserve);
-    
+    update_volatility(&env, &mut fee_state, price_delta, tiny_trade, total_reserve).unwrap();
+
     // Impact should be minimal due to size weighting
     assert!(fee_state.vol_accumulator < price_delta / 1000);
 }
@@ -267,8 +269,8 @@ fn test_large_trade_increases_fee() {
     let trade_size = 2_000_000;
     let total_reserve = 10_000_000;
     
-    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
-    
+    update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
+
     let new_fee = compute_fee_bps(&fee_state);
     
     // Fee should increase after large trade
@@ -286,7 +288,7 @@ fn test_multiple_trades_accumulate_volatility() {
     
     // Execute multiple trades
     for _ in 0..5 {
-        update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve);
+        update_volatility(&env, &mut fee_state, price_delta, trade_size, total_reserve).unwrap();
     }
     
     let fee_after_trades = compute_fee_bps(&fee_state);
@@ -308,7 +310,8 @@ fn test_fee_stays_within_bounds_under_extreme_conditions() {
             100_000_000_000_000,
             10_000_000,
             10_000_000,
-        );
+        )
+        .unwrap();
     }
     
     let fee = compute_fee_bps(&fee_state);
