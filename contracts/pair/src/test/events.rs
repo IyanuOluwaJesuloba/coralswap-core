@@ -31,14 +31,7 @@ fn swap_event_emits_correct_topics_and_data() {
     let to = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::swap(
-            &env, &sender, 1_000_i128, // amount_a_in
-            0_i128,     // amount_b_in
-            0_i128,     // amount_a_out
-            990_i128,   // amount_b_out
-            30_u32,     // fee_bps
-            &to,
-        );
+        PairEvents::swap(&env, &sender, 100_i128, 0_i128, 0_i128, 99_i128, 30_u32, &to);
     });
 
     let all = env.events().all();
@@ -55,7 +48,7 @@ fn mint_event_emits_correct_topics_and_data() {
     let sender = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::mint(&env, &sender, 500_i128, 500_i128);
+        PairEvents::mint(&env, &sender, 1_000_i128, 2_000_i128);
     });
 
     let all = env.events().all();
@@ -73,7 +66,7 @@ fn burn_event_emits_correct_topics_and_data() {
     let to = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::burn(&env, &sender, 250_i128, 250_i128, &to);
+        PairEvents::burn(&env, &sender, 500_i128, 750_i128, &to);
     });
 
     let all = env.events().all();
@@ -89,7 +82,7 @@ fn sync_event_emits_correct_topics_and_data() {
     let contract_id = env.register_contract(None, EventStub);
 
     env.as_contract(&contract_id, || {
-        PairEvents::sync(&env, 1_000_000_i128, 2_000_000_i128);
+        PairEvents::sync(&env, 10_000_i128, 20_000_i128);
     });
 
     let all = env.events().all();
