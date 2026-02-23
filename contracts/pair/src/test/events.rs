@@ -1,27 +1,21 @@
-//! Unit tests for `PairEvents` — verifies that every event method publishes
-//! the correct topics and data using `env.events().all()`.
+//! Unit tests for PairEvents emission.
 //!
-//! Each test:
-//!   1. Registers a minimal stub contract so events have a valid `contract_id`.
-//!   2. Calls the event method inside `env.as_contract()`.
-//!   3. Asserts that exactly one event was emitted with the expected shape.
+//! Each test registers a minimal stub contract, calls a single PairEvents
+//! helper inside `env.as_contract`, then asserts that exactly one event was
+//! published with the correct topics and data payload.
 
-#![cfg(test)]
-
+use crate::events::PairEvents;
 use soroban_sdk::{
     contract, contractimpl,
     testutils::{Address as _, Events as _},
-    Address, Env, IntoVal, Symbol,
-    symbol_short, vec,
+    Address, Env,
 };
 
-use crate::events::PairEvents;
-
 // ---------------------------------------------------------------------------
-// Minimal stub contract — needed so event emissions have a contract context.
+// Minimal stub so we can call `env.as_contract` with a valid contract id.
 // ---------------------------------------------------------------------------
 #[contract]
-struct EventStub;
+pub struct EventStub;
 
 #[contractimpl]
 impl EventStub {}

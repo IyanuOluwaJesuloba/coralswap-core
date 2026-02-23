@@ -21,45 +21,21 @@ impl PairEvents {
         to: &Address,
     ) {
         env.events().publish(
-            // "swap" ≤ 9 chars → compile-time symbol constant via symbol_short!
-            (symbol_short!("swap"), sender.clone()),
-            (amount_a_in, amount_b_in, amount_a_out, amount_b_out, fee_bps, to.clone()),
+            (symbol_short!("swap"), sender),
+            (amount_a_in, amount_b_in, amount_a_out, amount_b_out, fee_bps, to),
         );
     }
 
-    /// Emits a `mint` event after liquidity tokens are minted (deposit).
-    ///
-    /// Topics: `("mint", sender)`
-    /// Data:   `(amount_a, amount_b)`
     pub fn mint(env: &Env, sender: &Address, amount_a: i128, amount_b: i128) {
-        env.events().publish(
-            (symbol_short!("mint"), sender.clone()),
-            (amount_a, amount_b),
-        );
+        env.events().publish((symbol_short!("mint"), sender), (amount_a, amount_b));
     }
 
-    /// Emits a `burn` event after liquidity tokens are burned (withdrawal).
-    ///
-    /// Topics: `("burn", sender)`
-    /// Data:   `(amount_a, amount_b, to)`
     pub fn burn(env: &Env, sender: &Address, amount_a: i128, amount_b: i128, to: &Address) {
-        env.events().publish(
-            (symbol_short!("burn"), sender.clone()),
-            (amount_a, amount_b, to.clone()),
-        );
+        env.events().publish((symbol_short!("burn"), sender), (amount_a, amount_b, to));
     }
 
-    /// Emits a `sync` event after reserves are updated to current balances.
-    ///
-    /// Topics: `("sync",)`
-    /// Data:   `(reserve_a, reserve_b)`
-    ///
-    /// No sender is included because sync is a permissionless state refresh.
     pub fn sync(env: &Env, reserve_a: i128, reserve_b: i128) {
-        env.events().publish(
-            (symbol_short!("sync"),),
-            (reserve_a, reserve_b),
-        );
+        env.events().publish((symbol_short!("sync"),), (reserve_a, reserve_b));
     }
 
     /// Emits a `flash_loan` event after a successful flash loan.

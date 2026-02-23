@@ -66,15 +66,16 @@ pub fn get_fee_state(env: &Env) -> Option<FeeState> {
     env.storage().instance().get(&DataKey::FeeState)
 }
 
+pub fn set_fee_state(env: &Env, state: &FeeState) {
+    env.storage().instance().set(&DataKey::FeeState, state);
+}
+
 // ---------------------------------------------------------------------------
 // Reentrancy helpers
 // ---------------------------------------------------------------------------
 
 pub fn get_reentrancy_guard(env: &Env) -> ReentrancyGuard {
-    env.storage()
-        .instance()
-        .get(&DataKey::Guard)
-        .unwrap_or(ReentrancyGuard { locked: false })
+    env.storage().instance().get(&DataKey::Guard).unwrap_or(ReentrancyGuard { locked: false })
 }
 
 pub fn set_reentrancy_guard(env: &Env, guard: &ReentrancyGuard) {
