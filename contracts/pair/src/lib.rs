@@ -294,7 +294,7 @@ impl Pair {
         Ok(())
     }
 
-    // ── Flash Loan ────────────────────────────────────────────────────────────
+    // Flash Loan ────────────────────────────────────────────────────────────
 
     /// Executes a flash loan of up to `amount_a` of token_a and/or `amount_b`
     /// of token_b to `receiver`.  The receiver must repay principal + fee
