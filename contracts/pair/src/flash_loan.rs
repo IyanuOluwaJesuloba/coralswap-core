@@ -32,10 +32,7 @@ pub fn compute_flash_fee(amount: i128, current_fee_bps: u32) -> i128 {
     let effective_bps = current_fee_bps.max(FLASH_FEE_FLOOR_BPS) as i128;
     // Use checked_mul to guard against astronomically large loans overflowing
     // i128; saturate to i128::MAX (fee > principal) rather than panicking.
-    let fee = amount
-        .checked_mul(effective_bps)
-        .map(|v| v / 10_000_i128)
-        .unwrap_or(i128::MAX);
+    let fee = amount.checked_mul(effective_bps).map(|v| v / 10_000_i128).unwrap_or(i128::MAX);
     // At least 1 stroop to prevent zero-cost loans.
     fee.max(1)
 }
@@ -103,10 +100,7 @@ pub fn execute_flash_loan(
     }
 
     // Snapshot pre-loan constant-product invariant k = reserve_a * reserve_b.
-    let pre_k = state
-        .reserve_a
-        .checked_mul(state.reserve_b)
-        .ok_or(PairError::Overflow)?;
+    let pre_k = state.reserve_a.checked_mul(state.reserve_b).ok_or(PairError::Overflow)?;
 
     // -----------------------------------------------------------------------
     // 3. Reentrancy guard — first state write
@@ -122,20 +116,11 @@ pub fn execute_flash_loan(
     // -----------------------------------------------------------------------
 
     // Prefer the pool's configured baseline fee if it exceeds the flash floor.
-    let pool_fee_bps = get_fee_state(env)
-        .map(|fs| fs.baseline_fee_bps)
-        .unwrap_or(FLASH_FEE_FLOOR_BPS);
+    let pool_fee_bps =
+        get_fee_state(env).map(|fs| fs.baseline_fee_bps).unwrap_or(FLASH_FEE_FLOOR_BPS);
 
-    let fee_a = if amount_a > 0 {
-        compute_flash_fee(amount_a, pool_fee_bps)
-    } else {
-        0
-    };
-    let fee_b = if amount_b > 0 {
-        compute_flash_fee(amount_b, pool_fee_bps)
-    } else {
-        0
-    };
+    let fee_a = if amount_a > 0 { compute_flash_fee(amount_a, pool_fee_bps) } else { 0 };
+    let fee_b = if amount_b > 0 { compute_flash_fee(amount_b, pool_fee_bps) } else { 0 };
 
     // -----------------------------------------------------------------------
     // 5. Transfer requested tokens to receiver
@@ -158,7 +143,7 @@ pub fn execute_flash_loan(
     // `on_flash_loan` returns.  We pass the pair contract address as
     // `initiator` so the receiver knows the repayment destination.
     FlashReceiverClient::new(env, receiver).on_flash_loan(
-        &contract,       // initiator = pair address (repayment destination)
+        &contract, // initiator = pair address (repayment destination)
         &state.token_a,
         &state.token_b,
         &amount_a,
@@ -178,19 +163,13 @@ pub fn execute_flash_loan(
     // Each borrowed token's new balance must be >= old_reserve + fee.
     // Net effect: the pool gains exactly `fee` per token (or more).
     if amount_a > 0 {
-        let required_a = state
-            .reserve_a
-            .checked_add(fee_a)
-            .ok_or(PairError::Overflow)?;
+        let required_a = state.reserve_a.checked_add(fee_a).ok_or(PairError::Overflow)?;
         if new_balance_a < required_a {
             return Err(PairError::FlashLoanNotRepaid);
         }
     }
     if amount_b > 0 {
-        let required_b = state
-            .reserve_b
-            .checked_add(fee_b)
-            .ok_or(PairError::Overflow)?;
+        let required_b = state.reserve_b.checked_add(fee_b).ok_or(PairError::Overflow)?;
         if new_balance_b < required_b {
             return Err(PairError::FlashLoanNotRepaid);
         }
@@ -208,10 +187,7 @@ pub fn execute_flash_loan(
     // -----------------------------------------------------------------------
 
     // post_k must be >= pre_k; the fee income ensures this when repaid.
-    let post_k = state
-        .reserve_a
-        .checked_mul(state.reserve_b)
-        .ok_or(PairError::Overflow)?;
+    let post_k = state.reserve_a.checked_mul(state.reserve_b).ok_or(PairError::Overflow)?;
 
     if post_k < pre_k {
         return Err(PairError::InvalidK);

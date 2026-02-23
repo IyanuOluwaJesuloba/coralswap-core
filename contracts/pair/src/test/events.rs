@@ -4,8 +4,12 @@
 //! helper inside `env.as_contract`, then asserts that exactly one event was
 //! published with the correct topics and data payload.
 
-use soroban_sdk::{contract, contractimpl, symbol_short, Address, Env, IntoVal, Symbol};
 use crate::events::PairEvents;
+use soroban_sdk::{
+    contract, contractimpl,
+    testutils::{Address as _, Events as _},
+    Address, Env,
+};
 
 // ---------------------------------------------------------------------------
 // Minimal stub so we can call `env.as_contract` with a valid contract id.
@@ -27,16 +31,7 @@ fn swap_event_emits_correct_topics_and_data() {
     let to = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::swap(
-            &env,
-            &sender,
-            1_000_i128,   // amount_a_in
-            0_i128,       // amount_b_in
-            0_i128,       // amount_a_out
-            990_i128,     // amount_b_out
-            30_u32,       // fee_bps
-            &to,
-        );
+        PairEvents::swap(&env, &sender, 100_i128, 0_i128, 0_i128, 99_i128, 30_u32, &to);
     });
 
     let all = env.events().all();
@@ -49,7 +44,7 @@ fn swap_event_emits_correct_topics_and_data() {
             (
                 contract_id,
                 (symbol_short!("swap"), sender.clone()).into_val(&env),
-                (1_000_i128, 0_i128, 0_i128, 990_i128, 30_u32, to.clone()).into_val(&env),
+                (100_i128, 0_i128, 0_i128, 99_i128, 30_u32, to.clone()).into_val(&env),
             )
         ]
     );
@@ -65,7 +60,7 @@ fn mint_event_emits_correct_topics_and_data() {
     let sender = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::mint(&env, &sender, 500_i128, 500_i128);
+        PairEvents::mint(&env, &sender, 1_000_i128, 2_000_i128);
     });
 
     let all = env.events().all();
@@ -78,7 +73,7 @@ fn mint_event_emits_correct_topics_and_data() {
             (
                 contract_id,
                 (symbol_short!("mint"), sender.clone()).into_val(&env),
-                (500_i128, 500_i128).into_val(&env),
+                (1_000_i128, 2_000_i128).into_val(&env),
             )
         ]
     );
@@ -95,7 +90,7 @@ fn burn_event_emits_correct_topics_and_data() {
     let to = Address::generate(&env);
 
     env.as_contract(&contract_id, || {
-        PairEvents::burn(&env, &sender, 250_i128, 250_i128, &to);
+        PairEvents::burn(&env, &sender, 500_i128, 750_i128, &to);
     });
 
     let all = env.events().all();
@@ -108,7 +103,7 @@ fn burn_event_emits_correct_topics_and_data() {
             (
                 contract_id,
                 (symbol_short!("burn"), sender.clone()).into_val(&env),
-                (250_i128, 250_i128, to.clone()).into_val(&env),
+                (500_i128, 750_i128, to.clone()).into_val(&env),
             )
         ]
     );
@@ -123,7 +118,7 @@ fn sync_event_emits_correct_topics_and_data() {
     let contract_id = env.register_contract(None, EventStub);
 
     env.as_contract(&contract_id, || {
-        PairEvents::sync(&env, 1_000_000_i128, 2_000_000_i128);
+        PairEvents::sync(&env, 10_000_i128, 20_000_i128);
     });
 
     let all = env.events().all();
@@ -136,7 +131,7 @@ fn sync_event_emits_correct_topics_and_data() {
             (
                 contract_id,
                 (symbol_short!("sync"),).into_val(&env),
-                (1_000_000_i128, 2_000_000_i128).into_val(&env),
+                (10_000_i128, 20_000_i128).into_val(&env),
             )
         ]
     );
