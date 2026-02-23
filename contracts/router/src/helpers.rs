@@ -44,35 +44,14 @@ pub fn get_amount_out(
     reserve_out: i128,
     fee_bps: u32,
 ) -> Result<i128, RouterError> {
-    // Calculate: amount_in * (10000 - fee_bps)
-    let amount_in_with_fee =
-        amount_in.checked_mul(10000 - fee_bps as i128).ok_or(RouterError::ExcessiveInputAmount)?;
-
-    // Calculate: amount_in_with_fee * reserve_out
-    let numerator =
-        amount_in_with_fee.checked_mul(reserve_out).ok_or(RouterError::ExcessiveInputAmount)?;
-
-    // Calculate: reserve_in * 10000 + amount_in_with_fee
-    let denominator = reserve_in
-        .checked_mul(10000)
-        .ok_or(RouterError::ExcessiveInputAmount)?
-        .checked_add(amount_in_with_fee)
-        .ok_or(RouterError::ExcessiveInputAmount)?;
-
-    // Final division
-    let amount_out = numerator / denominator;
-
-    if amount_out <= 0 {
-        return Err(RouterError::InsufficientOutputAmount);
-    }
-
-    Ok(amount_out)
+    todo!()
 }
 
 /// Computes input amount required for an exact output swap.
 ///
 /// Formula: amount_in = (reserve_in * amount_out * 10000) /
 ///                      ((reserve_out - amount_out) * (10000 - fee_bps)) + 1
+#[allow(dead_code)]
 pub fn get_amount_in(
     _env: &Env,
     amount_out: i128,
@@ -80,23 +59,7 @@ pub fn get_amount_in(
     reserve_out: i128,
     fee_bps: u32,
 ) -> Result<i128, RouterError> {
-    // Calculate: reserve_in * amount_out * 10000
-    let numerator = reserve_in
-        .checked_mul(amount_out)
-        .ok_or(RouterError::ExcessiveInputAmount)?
-        .checked_mul(10000)
-        .ok_or(RouterError::ExcessiveInputAmount)?;
-
-    // Calculate: (reserve_out - amount_out) * (10000 - fee_bps)
-    let denominator = (reserve_out - amount_out)
-        .checked_mul(10000 - fee_bps as i128)
-        .ok_or(RouterError::ExcessiveInputAmount)?;
-
-    // Final division with +1 to round up
-    let amount_in =
-        (numerator / denominator).checked_add(1).ok_or(RouterError::ExcessiveInputAmount)?;
-
-    Ok(amount_in)
+    todo!()
 }
 
 /// Sorts token addresses into canonical order (lexicographically).
