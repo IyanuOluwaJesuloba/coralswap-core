@@ -84,7 +84,8 @@ fn test_invalid_metadata_rejected() {
     assert_eq!(result, Err(Ok(GovTokenError::InvalidMetadata)));
 
     // name > 32 chars
-    let long_name = String::from_str(&env, "ThisIsAVeryLongTokenNameThatExceedsThirtyTwoCharacters!");
+    let long_name =
+        String::from_str(&env, "ThisIsAVeryLongTokenNameThatExceedsThirtyTwoCharacters!");
     let result = gov.try_initialize(&admin, &18, &long_name, &String::from_str(&env, "TST"));
     assert_eq!(result, Err(Ok(GovTokenError::InvalidMetadata)));
 }
@@ -335,25 +336,13 @@ fn test_get_past_votes_basic() {
 
     // Query past votes
     // At ledger_0: Alice had 1_000 votes
-    assert_eq!(
-        c.gov.get_past_votes(&alice, &ledger_0),
-        1_000
-    );
+    assert_eq!(c.gov.get_past_votes(&alice, &ledger_0), 1_000);
     // At ledger_0 + 5: still 1_000 (before delegation)
-    assert_eq!(
-        c.gov.get_past_votes(&alice, &(ledger_0 + 5)),
-        1_000
-    );
+    assert_eq!(c.gov.get_past_votes(&alice, &(ledger_0 + 5)), 1_000);
     // At ledger_0 + 10: Alice delegated to Bob → Alice has 0 votes
-    assert_eq!(
-        c.gov.get_past_votes(&alice, &(ledger_0 + 10)),
-        0
-    );
+    assert_eq!(c.gov.get_past_votes(&alice, &(ledger_0 + 10)), 0);
     // At ledger_0 + 10: Bob received 1_000 votes
-    assert_eq!(
-        c.gov.get_past_votes(&bob, &(ledger_0 + 10)),
-        1_000
-    );
+    assert_eq!(c.gov.get_past_votes(&bob, &(ledger_0 + 10)), 1_000);
 }
 
 #[test]
@@ -469,10 +458,7 @@ fn test_checkpoint_ttl_extended() {
     let cp_key = GovTokenKey::Checkpoints(alice);
     c.env.as_contract(&c.gov_id, || {
         let ttl = c.env.storage().persistent().get_ttl(&cp_key);
-        assert!(
-            ttl >= 518_400,
-            "Checkpoint TTL should be extended on write"
-        );
+        assert!(ttl >= 518_400, "Checkpoint TTL should be extended on write");
     });
 }
 
@@ -488,9 +474,6 @@ fn test_delegate_ttl_extended() {
     let delegate_key = GovTokenKey::Delegate(alice);
     c.env.as_contract(&c.gov_id, || {
         let ttl = c.env.storage().persistent().get_ttl(&delegate_key);
-        assert!(
-            ttl >= 518_400,
-            "Delegate entry TTL should be extended on write"
-        );
+        assert!(ttl >= 518_400, "Delegate entry TTL should be extended on write");
     });
 }

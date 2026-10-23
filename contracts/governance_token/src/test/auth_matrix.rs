@@ -54,17 +54,8 @@ impl Ctx {
             &String::from_str(&env, "CGOV"),
         );
 
-        let c = Self {
-            env,
-            gov,
-            gov_id,
-            admin,
-            holder,
-            spender,
-            recipient,
-            delegate_target,
-            stranger,
-        };
+        let c =
+            Self { env, gov, gov_id, admin, holder, spender, recipient, delegate_target, stranger };
         c.mint(&c.holder.clone(), 1_000i128);
         c
     }
@@ -94,13 +85,7 @@ fn admin_transfer_is_authorized_by_the_current_admin() {
     let c = Ctx::new();
     let next = Address::generate(&c.env);
 
-    auth::allow(
-        &c.env,
-        &c.admin,
-        &c.gov_id,
-        "admin_transfer",
-        auth_args!(&c.env, next.clone()),
-    );
+    auth::allow(&c.env, &c.admin, &c.gov_id, "admin_transfer", auth_args!(&c.env, next.clone()));
     c.gov.admin_transfer(&next);
 
     auth::assert_authorized(
@@ -226,13 +211,7 @@ fn transfer_from_is_authorized_by_the_spender() {
         &c.spender,
         &c.gov_id,
         "transfer_from",
-        auth_args!(
-            &c.env,
-            c.spender.clone(),
-            c.holder.clone(),
-            c.recipient.clone(),
-            300i128
-        ),
+        auth_args!(&c.env, c.spender.clone(), c.holder.clone(), c.recipient.clone(), 300i128),
     );
     c.gov.transfer_from(&c.spender, &c.holder, &c.recipient, &300);
 
@@ -241,13 +220,7 @@ fn transfer_from_is_authorized_by_the_spender() {
         &c.spender,
         &c.gov_id,
         "transfer_from",
-        auth_args!(
-            &c.env,
-            c.spender.clone(),
-            c.holder.clone(),
-            c.recipient.clone(),
-            300i128
-        ),
+        auth_args!(&c.env, c.spender.clone(), c.holder.clone(), c.recipient.clone(), 300i128),
     );
     assert_eq!(c.gov.balance(&c.recipient), 300i128);
 }
@@ -285,17 +258,8 @@ fn admin_transfer_rejects_a_stranger() {
     let c = Ctx::new();
     let next = Address::generate(&c.env);
 
-    auth::allow(
-        &c.env,
-        &c.stranger,
-        &c.gov_id,
-        "admin_transfer",
-        auth_args!(&c.env, next.clone()),
-    );
-    assert!(
-        c.gov.try_admin_transfer(&next).is_err(),
-        "a stranger must not reassign the admin"
-    );
+    auth::allow(&c.env, &c.stranger, &c.gov_id, "admin_transfer", auth_args!(&c.env, next.clone()));
+    assert!(c.gov.try_admin_transfer(&next).is_err(), "a stranger must not reassign the admin");
     assert_eq!(c.gov.admin(), c.admin);
 }
 
@@ -310,10 +274,7 @@ fn mint_rejects_a_stranger() {
         "mint",
         auth_args!(&c.env, c.stranger.clone(), 1i128),
     );
-    assert!(
-        c.gov.try_mint(&c.stranger, &1).is_err(),
-        "a stranger must not mint governance tokens"
-    );
+    assert!(c.gov.try_mint(&c.stranger, &1).is_err(), "a stranger must not mint governance tokens");
     assert_eq!(c.gov.total_supply(), 1_000i128, "supply must be unchanged");
 }
 
@@ -404,9 +365,7 @@ fn every_gated_entry_point_fails_with_no_authorization_at_all() {
     assert!(c.gov.try_burn_from(&c.spender, &c.holder, &1).is_err());
     assert!(c.gov.try_approve(&c.holder, &c.spender, &1, &expiry).is_err());
     assert!(c.gov.try_transfer(&c.holder, &c.recipient, &1).is_err());
-    assert!(c.gov
-        .try_transfer_from(&c.spender, &c.holder, &c.recipient, &1)
-        .is_err());
+    assert!(c.gov.try_transfer_from(&c.spender, &c.holder, &c.recipient, &1).is_err());
     assert!(c.gov.try_delegate(&c.holder, &c.delegate_target).is_err());
 
     assert_eq!(c.gov.admin(), c.admin);

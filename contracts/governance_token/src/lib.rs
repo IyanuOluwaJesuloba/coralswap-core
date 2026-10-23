@@ -71,10 +71,9 @@ impl GovernanceToken {
         }
 
         env.storage().instance().set(&GovTokenKey::Admin, &admin);
-        env.storage().instance().set(
-            &GovTokenKey::Metadata,
-            &TokenMetadata { decimals, name, symbol },
-        );
+        env.storage()
+            .instance()
+            .set(&GovTokenKey::Metadata, &TokenMetadata { decimals, name, symbol });
         env.storage().instance().set(&GovTokenKey::TotalSupply, &0i128);
 
         Ok(())
@@ -84,10 +83,7 @@ impl GovernanceToken {
 
     /// Returns the current admin.
     pub fn admin(env: Env) -> Result<Address, GovTokenError> {
-        env.storage()
-            .instance()
-            .get(&GovTokenKey::Admin)
-            .ok_or(GovTokenError::NotInitialized)
+        env.storage().instance().get(&GovTokenKey::Admin).ok_or(GovTokenError::NotInitialized)
     }
 
     /// Transfer admin role to a new address.  Only callable by the current admin.
@@ -100,8 +96,7 @@ impl GovernanceToken {
 
         old_admin.require_auth();
         env.storage().instance().set(&GovTokenKey::Admin, &new_admin);
-        env.events()
-            .publish((soroban_sdk::symbol_short!("adm_xfer"), old_admin, new_admin), ());
+        env.events().publish((soroban_sdk::symbol_short!("adm_xfer"), old_admin, new_admin), ());
 
         Ok(())
     }
@@ -150,15 +145,10 @@ impl GovernanceToken {
         if amount == 0 {
             env.storage().persistent().remove(&key);
         } else {
-            let entry = AllowanceEntry {
-                amount,
-                expiration_ledger,
-            };
+            let entry = AllowanceEntry { amount, expiration_ledger };
             env.storage().persistent().set(&key, &entry);
             let ledgers_to_live = expiration_ledger.saturating_sub(env.ledger().sequence());
-            env.storage()
-                .persistent()
-                .extend_ttl(&key, ledgers_to_live, ledgers_to_live);
+            env.storage().persistent().extend_ttl(&key, ledgers_to_live, ledgers_to_live);
         }
 
         env.events().publish(
@@ -171,11 +161,7 @@ impl GovernanceToken {
     /// Get the allowance for `spender` to transfer from `from`.
     pub fn allowance(env: Env, from: Address, spender: Address) -> i128 {
         let key = GovTokenKey::Allowance(from, spender);
-        if let Some(entry) = env
-            .storage()
-            .persistent()
-            .get::<GovTokenKey, AllowanceEntry>(&key)
-        {
+        if let Some(entry) = env.storage().persistent().get::<GovTokenKey, AllowanceEntry>(&key) {
             if entry.expiration_ledger <= env.ledger().sequence() {
                 return 0;
             }
@@ -235,11 +221,7 @@ impl GovernanceToken {
         Self::write_balance(&env, &balance_key, new_balance);
 
         // Increase total supply
-        let total: i128 = env
-            .storage()
-            .instance()
-            .get(&GovTokenKey::TotalSupply)
-            .unwrap_or(0);
+        let total: i128 = env.storage().instance().get(&GovTokenKey::TotalSupply).unwrap_or(0);
         let new_total = total.checked_add(amount).ok_or(GovTokenError::Overflow)?;
         const MAX_TOTAL_SUPPLY: i128 = 1_000_000_000_000_000_000_000_000_000;
         if new_total > MAX_TOTAL_SUPPLY {
@@ -254,8 +236,7 @@ impl GovernanceToken {
         // Write total-supply checkpoint
         Self::write_supply_checkpoint(&env, new_total);
 
-        env.events()
-            .publish((soroban_sdk::symbol_short!("mint"), admin, to), amount);
+        env.events().publish((soroban_sdk::symbol_short!("mint"), admin, to), amount);
         Ok(())
     }
 
@@ -325,24 +306,18 @@ impl GovernanceToken {
         from.require_auth();
 
         let current_delegate = Self::get_delegate_or_self(&env, &from);
-        let bal: i128 = env
-            .storage()
-            .persistent()
-            .get(&GovTokenKey::Balance(from.clone()))
-            .unwrap_or(0);
+        let bal: i128 =
+            env.storage().persistent().get(&GovTokenKey::Balance(from.clone())).unwrap_or(0);
 
         // Record the new delegate
         let delegate_key = GovTokenKey::Delegate(from.clone());
         env.storage().persistent().set(&delegate_key, &to);
-        env.storage()
-            .persistent()
-            .extend_ttl(&delegate_key, TTL_THRESHOLD, TTL_EXTEND_TO);
+        env.storage().persistent().extend_ttl(&delegate_key, TTL_THRESHOLD, TTL_EXTEND_TO);
 
         // Move voting power from the old delegate to the new one
         Self::move_voting_power(&env, &current_delegate, &to, bal)?;
 
-        env.events()
-            .publish((soroban_sdk::symbol_short!("delegate"), from, to), bal);
+        env.events().publish((soroban_sdk::symbol_short!("delegate"), from, to), bal);
         Ok(())
     }
 
@@ -361,20 +336,13 @@ impl GovernanceToken {
     ///
     /// Returns [`GovTokenError::FutureLedger`] if `ledger` is greater than the
     /// current ledger sequence.
-    pub fn get_past_votes(
-        env: Env,
-        addr: Address,
-        ledger: u32,
-    ) -> Result<i128, GovTokenError> {
+    pub fn get_past_votes(env: Env, addr: Address, ledger: u32) -> Result<i128, GovTokenError> {
         if ledger > env.ledger().sequence() {
             return Err(GovTokenError::FutureLedger);
         }
         let key = GovTokenKey::Checkpoints(addr);
-        let checkpoints: Vec<Checkpoint> = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(Vec::new(&env));
+        let checkpoints: Vec<Checkpoint> =
+            env.storage().persistent().get(&key).unwrap_or(Vec::new(&env));
         Ok(Self::lookup_checkpoint(&checkpoints, ledger))
     }
 
@@ -382,19 +350,13 @@ impl GovernanceToken {
     ///
     /// Returns [`GovTokenError::FutureLedger`] if `ledger` is greater than the
     /// current ledger sequence.
-    pub fn get_past_total_supply(
-        env: Env,
-        ledger: u32,
-    ) -> Result<i128, GovTokenError> {
+    pub fn get_past_total_supply(env: Env, ledger: u32) -> Result<i128, GovTokenError> {
         if ledger > env.ledger().sequence() {
             return Err(GovTokenError::FutureLedger);
         }
         let key = GovTokenKey::TotalSupplyCheckpoints;
-        let checkpoints: Vec<Checkpoint> = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(Vec::new(&env));
+        let checkpoints: Vec<Checkpoint> =
+            env.storage().persistent().get(&key).unwrap_or(Vec::new(&env));
         Ok(Self::lookup_checkpoint(&checkpoints, ledger))
     }
 
@@ -432,18 +394,12 @@ impl GovernanceToken {
         let to_delegate = Self::get_delegate_or_self(env, to);
         Self::move_voting_power(env, &from_delegate, &to_delegate, amount)?;
 
-        env.events().publish(
-            (soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()),
-            amount,
-        );
+        env.events()
+            .publish((soroban_sdk::symbol_short!("transfer"), from.clone(), to.clone()), amount);
         Ok(())
     }
 
-    fn burn_internal(
-        env: &Env,
-        from: &Address,
-        amount: i128,
-    ) -> Result<(), GovTokenError> {
+    fn burn_internal(env: &Env, from: &Address, amount: i128) -> Result<(), GovTokenError> {
         if amount < 0 {
             return Err(GovTokenError::InsufficientBalance);
         }
@@ -459,14 +415,8 @@ impl GovernanceToken {
         Self::write_balance(env, &balance_key, current - amount);
 
         // Decrease total supply
-        let total: i128 = env
-            .storage()
-            .instance()
-            .get(&GovTokenKey::TotalSupply)
-            .unwrap_or(0);
-        let new_total = total
-            .checked_sub(amount)
-            .ok_or(GovTokenError::InsufficientBalance)?;
+        let total: i128 = env.storage().instance().get(&GovTokenKey::TotalSupply).unwrap_or(0);
+        let new_total = total.checked_sub(amount).ok_or(GovTokenError::InsufficientBalance)?;
         env.storage().instance().set(&GovTokenKey::TotalSupply, &new_total);
 
         // Decrease voting power of from's delegate
@@ -475,8 +425,7 @@ impl GovernanceToken {
 
         Self::write_supply_checkpoint(env, new_total);
 
-        env.events()
-            .publish((soroban_sdk::symbol_short!("burn"), from.clone()), amount);
+        env.events().publish((soroban_sdk::symbol_short!("burn"), from.clone()), amount);
         Ok(())
     }
 
@@ -487,11 +436,8 @@ impl GovernanceToken {
         amount: i128,
     ) -> Result<(), GovTokenError> {
         let key = GovTokenKey::Allowance(from.clone(), spender.clone());
-        let entry: AllowanceEntry = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .ok_or(GovTokenError::InsufficientAllowance)?;
+        let entry: AllowanceEntry =
+            env.storage().persistent().get(&key).ok_or(GovTokenError::InsufficientAllowance)?;
 
         if entry.expiration_ledger <= env.ledger().sequence() {
             return Err(GovTokenError::InsufficientAllowance);
@@ -504,17 +450,11 @@ impl GovernanceToken {
         if new_amount == 0 {
             env.storage().persistent().remove(&key);
         } else {
-            let new_entry = AllowanceEntry {
-                amount: new_amount,
-                expiration_ledger: entry.expiration_ledger,
-            };
+            let new_entry =
+                AllowanceEntry { amount: new_amount, expiration_ledger: entry.expiration_ledger };
             env.storage().persistent().set(&key, &new_entry);
-            let ledgers_to_live = entry
-                .expiration_ledger
-                .saturating_sub(env.ledger().sequence());
-            env.storage()
-                .persistent()
-                .extend_ttl(&key, ledgers_to_live, ledgers_to_live);
+            let ledgers_to_live = entry.expiration_ledger.saturating_sub(env.ledger().sequence());
+            env.storage().persistent().extend_ttl(&key, ledgers_to_live, ledgers_to_live);
         }
         Ok(())
     }
@@ -524,26 +464,18 @@ impl GovernanceToken {
             env.storage().persistent().remove(key);
         } else {
             env.storage().persistent().set(key, &balance);
-            env.storage()
-                .persistent()
-                .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
+            env.storage().persistent().extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
         }
     }
 
     fn get_delegate_or_self(env: &Env, addr: &Address) -> Address {
-        env.storage()
-            .persistent()
-            .get(&GovTokenKey::Delegate(addr.clone()))
-            .unwrap_or(addr.clone())
+        env.storage().persistent().get(&GovTokenKey::Delegate(addr.clone())).unwrap_or(addr.clone())
     }
 
     fn get_votes_internal(env: &Env, addr: &Address) -> i128 {
         let key = GovTokenKey::Checkpoints(addr.clone());
-        let checkpoints: Vec<Checkpoint> = env
-            .storage()
-            .persistent()
-            .get(&key)
-            .unwrap_or(Vec::new(env));
+        let checkpoints: Vec<Checkpoint> =
+            env.storage().persistent().get(&key).unwrap_or(Vec::new(env));
         let len = checkpoints.len();
         if len == 0 {
             return 0;
@@ -554,11 +486,8 @@ impl GovernanceToken {
     /// Writes a checkpoint for `key`, collapsing same-ledger writes into the
     /// last entry so each ledger has at most one checkpoint.
     fn write_checkpoint(env: &Env, key: &GovTokenKey, new_value: i128) {
-        let mut checkpoints: Vec<Checkpoint> = env
-            .storage()
-            .persistent()
-            .get(key)
-            .unwrap_or(Vec::new(env));
+        let mut checkpoints: Vec<Checkpoint> =
+            env.storage().persistent().get(key).unwrap_or(Vec::new(env));
         let current_ledger = env.ledger().sequence();
 
         let len = checkpoints.len();
@@ -569,26 +498,17 @@ impl GovernanceToken {
             }
         }
 
-        checkpoints.push_back(Checkpoint {
-            ledger: current_ledger,
-            value: new_value,
-        });
+        checkpoints.push_back(Checkpoint { ledger: current_ledger, value: new_value });
 
         env.storage().persistent().set(key, &checkpoints);
-        env.storage()
-            .persistent()
-            .extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
+        env.storage().persistent().extend_ttl(key, TTL_THRESHOLD, TTL_EXTEND_TO);
     }
 
     fn write_supply_checkpoint(env: &Env, new_supply: i128) {
         Self::write_checkpoint(env, &GovTokenKey::TotalSupplyCheckpoints, new_supply);
     }
 
-    fn increase_votes(
-        env: &Env,
-        addr: &Address,
-        amount: i128,
-    ) -> Result<(), GovTokenError> {
+    fn increase_votes(env: &Env, addr: &Address, amount: i128) -> Result<(), GovTokenError> {
         if amount == 0 {
             return Ok(());
         }
@@ -598,11 +518,7 @@ impl GovernanceToken {
         Ok(())
     }
 
-    fn decrease_votes(
-        env: &Env,
-        addr: &Address,
-        amount: i128,
-    ) -> Result<(), GovTokenError> {
+    fn decrease_votes(env: &Env, addr: &Address, amount: i128) -> Result<(), GovTokenError> {
         if amount == 0 {
             return Ok(());
         }
