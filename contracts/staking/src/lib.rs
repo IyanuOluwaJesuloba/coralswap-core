@@ -109,7 +109,7 @@ impl Staking {
         // Pull LP tokens from the user into this contract.
         token::Client::new(&env, &config.lp_token).transfer(
             &user,
-            &env.current_contract_address(),
+            env.current_contract_address(),
             &amount,
         );
 
