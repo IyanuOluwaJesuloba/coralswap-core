@@ -38,7 +38,6 @@ struct Ctx {
     admin: Address,
     user: Address,
     lp_token: Address,
-    reward_token: Address,
 }
 
 impl Ctx {
@@ -65,10 +64,10 @@ impl Ctx {
         // Initialize the contract (blanket mock active).
         StakingClient::new(&env, &staking_id).initialize(&admin, &lp_token, &reward_token, &100u64);
 
-        Ctx { env, staking_id, admin, user, lp_token, reward_token }
+        Ctx { env, staking_id, admin, user, lp_token }
     }
 
-    fn client(&self) -> StakingClient {
+    fn client(&self) -> StakingClient<'_> {
         StakingClient::new(&self.env, &self.staking_id)
     }
 
