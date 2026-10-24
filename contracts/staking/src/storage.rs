@@ -74,10 +74,7 @@ pub fn set_total_staked(env: &Env, amount: i128) {
 /// Returns the staked balance for `user`.  Defaults to `0` for addresses that
 /// have never staked.
 pub fn get_user_stake(env: &Env, user: &Address) -> i128 {
-    env.storage()
-        .instance()
-        .get(&DataKey::UserStake(user.clone()))
-        .unwrap_or(0i128)
+    env.storage().instance().get(&DataKey::UserStake(user.clone())).unwrap_or(0i128)
 }
 
 pub fn set_user_stake(env: &Env, user: &Address, amount: i128) {

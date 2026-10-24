@@ -24,11 +24,7 @@
 
 use coralswap_shared::auth_args;
 use coralswap_shared::test_support as auth;
-use soroban_sdk::{
-    testutils::Address as _,
-    token::StellarAssetClient,
-    Address, Env,
-};
+use soroban_sdk::{testutils::Address as _, token::StellarAssetClient, Address, Env};
 
 use crate::{Staking, StakingClient};
 
@@ -67,8 +63,7 @@ impl Ctx {
         StellarAssetClient::new(&env, &lp_token).mint(&user, &100_000i128);
 
         // Initialize the contract (blanket mock active).
-        StakingClient::new(&env, &staking_id)
-            .initialize(&admin, &lp_token, &reward_token, &100u64);
+        StakingClient::new(&env, &staking_id).initialize(&admin, &lp_token, &reward_token, &100u64);
 
         Ctx { env, staking_id, admin, user, lp_token, reward_token }
     }
@@ -152,12 +147,7 @@ fn stake_is_authorized_by_user() {
     // Note: `assert_authorized` requires no sub-invocations, so it cannot be
     // used here.  The rejection test (`stake_rejects_a_stranger`) proves the
     // guard is present; this test proves the correct tree is accepted.
-    let transfer_args = auth_args!(
-        &ctx.env,
-        ctx.user.clone(),
-        ctx.staking_id.clone(),
-        500i128
-    );
+    let transfer_args = auth_args!(&ctx.env, ctx.user.clone(), ctx.staking_id.clone(), 500i128);
     let sub = auth::Call::new(&ctx.lp_token, "transfer", transfer_args);
 
     auth::allow_with_sub_invocations(

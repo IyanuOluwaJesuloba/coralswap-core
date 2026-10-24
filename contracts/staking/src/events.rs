@@ -31,17 +31,9 @@ impl StakingEvents {
     ///
     /// Topics: `["staked", user]`
     /// Data: `(amount, new_user_total, new_contract_total)`
-    pub fn staked(
-        env: &Env,
-        user: &Address,
-        amount: i128,
-        user_total: i128,
-        contract_total: i128,
-    ) {
-        env.events().publish(
-            (symbol_short!("staked"), user.clone()),
-            (amount, user_total, contract_total),
-        );
+    pub fn staked(env: &Env, user: &Address, amount: i128, user_total: i128, contract_total: i128) {
+        env.events()
+            .publish((symbol_short!("staked"), user.clone()), (amount, user_total, contract_total));
     }
 
     /// Emitted when a user withdraws locked LP tokens.
@@ -66,9 +58,7 @@ impl StakingEvents {
     /// Topics: `["rwdupdate"]`
     /// Data: `(new_reward_token, new_reward_rate)`
     pub fn reward_config_updated(env: &Env, new_reward_token: &Address, new_reward_rate: u64) {
-        env.events().publish(
-            (symbol_short!("rwdupdate"),),
-            (new_reward_token.clone(), new_reward_rate),
-        );
+        env.events()
+            .publish((symbol_short!("rwdupdate"),), (new_reward_token.clone(), new_reward_rate));
     }
 }
